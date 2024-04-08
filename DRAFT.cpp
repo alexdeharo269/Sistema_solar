@@ -100,7 +100,7 @@ void tfunc(){
     {
         if (signbit(y_tminus1[i]) != signbit(pic[i][1])) //signbit(): bit del signo de un float (de cmath)
         {
-            period[i]=(t-aux[i])*59.8*2;
+            period[i]=(t-aux[i])*58.1*2;
             aux[i] = t;
         }
     }
