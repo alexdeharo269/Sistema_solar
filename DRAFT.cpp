@@ -109,7 +109,7 @@ void tfunc(){
 int print(FILE* out,FILE*out2,FILE* out3 ){
     for (int i=0;i<nplt;i++){
         fprintf(out, "%lf, %lf \n", pic[i][0], pic[i][1]);
-        fprintf(out2, "%lf\n",energy[i]);
+        fprintf(out2, "%e\n",energy[i]);
         fprintf(out3,"%lf\n",period[i]);                   // lo primero esta el periodo del sol pero no tiene sentido 
     }
     fprintf(out, "\n");
