@@ -1,44 +1,23 @@
 #include<stdio.h>
 #include<math.h>
 #include<cstdlib> //para la funcion rand(): decimal entre 0 y 1. RandBetween (entero entre min y max)
+#include <iostream>
+#include <fstream>
+#include <chrono>
+#include<random>
+#include<cmath>
+#include<vector>
+#include "System.h"
 
-using namespce std;
 
 
-#define constant nplt    //esto va a ser el numero inicial de planetesimales.
+using namespace std;
 
 
+
+
+//si quisiera limitar el alcance de la constante a este archivo usaria static const int nplt=1000
 //Articulo interesante para clases en Marcadores/Fisica
-class Planet {
-    public:
-        double x;
-        double y;
-        double vx;
-        double vy;
-        double mass;
-        double radius;
-        double U; //energia interna.
-        bool real;
-        bool rock;
-    private:
-
-    //y las funciones publicas o privadas que le añado a planet (el algoritmo de Verlet puedo añadirlo aqui pq solo van con el sol)
-}
-class System
-{
-    public:
-         
-
-    private:
-    //y las funciones publicas o privadas caracteristicas de system
-    
-}
-
-/*La disposición inicial de planetesimales debe involucrar una función random para las posiciones 
-dentro de los limites del SS, pero no completamente random para las velocidades ya que si son completamente random
-se cancelan y todo cae sobre el Sol. Habia pensado en un cono dentro del cual las velocidaes sean random, pero al 
-menos que se respete el sentido. */
-
 
 //la energia interna se obtiene de la diferencia de energias cineticas de los planetas
 //que se han chocado inelasticamente
@@ -49,15 +28,38 @@ menos que se respete el sentido. */
 //entonces copio aqui el algoritmo de Verlet y lo adapto a las nuevas variables.
 
 int main(){
-    Planet.real()
     //supongo que definir run.system y ponerlo a correr sobre el espacio de parametros.
 
     //para run.universe no voy a correr todas las simulaciones en animacion_planetas.py o los demás ficheros .py.
     //entonces estaria bien sacar run.system para meterlo en un python.subprocess y que saque (o guarde) las animaciones/figuras del sistema con parametros definidos
-    //Para run.multiverse más bien seria (o sacar solo algunas escogidas previamente) o sacar un txt con el resumen de lo que ha pasado (planetas que se han formado, lo que pida). 
+    
+    //Para run.multiverse más bien seria (o sacar solo algunas escogidas previamente) o sacar un txt con el resumen de lo que ha pasado (planetas que se han formado, lo que pida).
+    /*La disposición inicial de planetesimales debe involucrar una función random para las posiciones
+dentro de los limites del SS, pero no completamente random para las velocidades ya que si son completamente random
+se cancelan y todo cae sobre el Sol. Habia pensado en un cono dentro del cual las velocidaes sean random, pero al
+menos que se respete el sentido. */
 
+    const int nplt = 1000;      // esto va a ser el numero inicial de planetesimales.
+    unsigned seed = 1946402; // semilla generador de números aleatorios
 
+    System system(nplt,seed,10.0f,0.1f);
+    
 
+    // Generar posiciones iniciales aleatorias para los planetas
+    system.Parametrosiniciales();
+    //generarPosiciones sobre los parametros de densidad 
+    //Sistema.generarVelocidades(); sobre los parametros de velocidad
+    
+    
+
+    //Aqui defino el tiempo 
+    //Sistema.mover(); //sobre los parametros de radio y sobre el parametro de la linea del cinturon de anteroides. 10x10x10x10 ya tines 1e4 simulaciones
+    //mover podria ser en polares? 
+
+    // Guardar las posiciones en un archivo
+    system.guardarPosiciones();
+
+    return 0;
 }
 
 //Quiero un run.system que corra parametros concretos y un run.universe (o un for para cada system) que me itere sobre conjuntos de parametros 
