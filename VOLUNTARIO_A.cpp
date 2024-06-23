@@ -1,6 +1,5 @@
 #include<stdio.h>
 #include<math.h>
-#include<cstdlib> //para la funcion rand(): decimal entre 0 y 1. RandBetween (entero entre min y max)
 #include <iostream>
 #include <fstream>
 #include <chrono>
@@ -38,26 +37,34 @@ int main(){
 dentro de los limites del SS, pero no completamente random para las velocidades ya que si son completamente random
 se cancelan y todo cae sobre el Sol. Habia pensado en un cono dentro del cual las velocidaes sean random, pero al
 menos que se respete el sentido. */
-
-    const int nplt = 1000;      // esto va a ser el numero inicial de planetesimales.
+    double t;
+    const int nplt = 100;      // esto va a ser el numero inicial de planetesimales.
     unsigned seed = 1946402; // semilla generador de números aleatorios
+    const int iter_max=1000;
+    const double h=1.0;
 
-    System system(nplt,seed,10.0f,0.1f);
+    System system(nplt,seed,30.0f,0.1f);
     
 
     // Generar posiciones iniciales aleatorias para los planetas
     system.Parametrosiniciales();
     //generarPosiciones sobre los parametros de densidad 
     //Sistema.generarVelocidades(); sobre los parametros de velocidad
-    
-    
 
+    FILE *data;
+    data=fopen("planets_data.dat","w");
+
+    for(t=0;t<iter_max;t+=h){
+        system.Mover(h,data);
+        system.Interacciones();
+    }
+    
     //Aqui defino el tiempo 
     //Sistema.mover(); //sobre los parametros de radio y sobre el parametro de la linea del cinturon de anteroides. 10x10x10x10 ya tines 1e4 simulaciones
     //mover podria ser en polares? 
 
     // Guardar las posiciones en un archivo
-    system.guardarPosiciones();
+    //system.guardarPosiciones();
 
     return 0;
 }
