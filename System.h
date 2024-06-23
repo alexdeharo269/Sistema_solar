@@ -42,21 +42,25 @@ class Planet {
 class System {
     private:
         int numPlanetas;
-        float D_max, rock_density;
+        float D_max, rock_density, vrmod;
         mt19937_64 generator;
         uniform_real_distribution<double> real_distribution;
         uniform_real_distribution<double> rad_distribution;
+        uniform_real_distribution<double> vr_distribution;
         const double pi = M_PI;
 
     public:
         vector<Planet> planetas;
 
         // Constructor
-        System(int nplt, unsigned seed, float Dmax, float rock_den)
-            : numPlanetas(nplt), D_max(Dmax), rock_density(rock_den), generator(seed),
-            real_distribution(0.0, 1.0),rad_distribution(1.27/D_max, 1.0), //pongo otra distribución para el radio ya que no pueden tener radio 0.
-            //el menor radio será la órbita de Mercurio.
-            planetas(static_cast<index_t>(numPlanetas)) {}
+        System(int nplt, unsigned seed, float Dmax, float rock_den, float vr_mod)
+            : numPlanetas(nplt), D_max(Dmax), rock_density(rock_den),vrmod(vr_mod), generator(seed),
+              real_distribution(0.0, 1.0), rad_distribution(1.27 / D_max, 1.0), // pongo otra distribución para el radio ya que no pueden tener radio 0.
+              // el menor radio será la órbita de Mercurio.
+              vr_distribution(-1.0,1.0),
+              planetas(static_cast<index_t>(numPlanetas))
+        {
+        }
 
         // Método para generar posiciones aleatorias para los planetas
         void Parametrosiniciales()
@@ -67,14 +71,13 @@ class System {
                 planetas[i].dtS = rad_distribution(generator) * D_max;
                 planetas[i].phi = real_distribution(generator) * 2 * pi;
 
-                //planetas[i].vr = 0.01*real_distribution(generator); // PASO 2
-                planetas[i].vr=0;
+                planetas[i].vr = vrmod*vr_distribution(generator); // PASO 2
                 planetas[i].radius=0.1;
                 //Para la velocidad angular vamos a calcular una velocidad angular (radianes/59.1días) en función de la distancia
                 //Usamos la velocidad de una trayectoria circular:
                 
                 planetas[i].mass=0.0014/numPlanetas;
-                planetas[i].vphi = sqrt(planetas[i].mass / planetas[i].dtS);
+                planetas[i].vphi = sqrt(1 / planetas[i].dtS);
                 if(real_distribution(generator)<=rock_density){planetas[i].rock=1;}
             }
         }
@@ -97,8 +100,8 @@ class System {
             {
                 pic[i][0] = planetas[i].x();
                 pic[i][1] = planetas[i].y();
-                pic[i][2] = -planetas[i].vphi * planetas[i].y(); // vx = -vphi * y
-                pic[i][3] = planetas[i].vphi * planetas[i].x();  // vy = vphi * x
+                pic[i][2] = (-planetas[i].vphi * planetas[i].y()+planetas[i].vr*planetas[i].x())/planetas[i].dtS; // vx = -vphi * y
+                pic[i][3] = (planetas[i].vphi * planetas[i].x() + planetas[i].vr * planetas[i].y()) / planetas[i].dtS; // vy = vphi * x
             }
             /*
             // Files for output

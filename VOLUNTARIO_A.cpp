@@ -43,7 +43,7 @@ menos que se respete el sentido. */
     const int iter_max=1000;
     const double h=1.0;
 
-    System system(nplt,seed,30.0f,0.1f);
+    System system(nplt,seed,30.0f,0.1f,0.05f);
     
 
     // Generar posiciones iniciales aleatorias para los planetas
