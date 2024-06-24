@@ -42,8 +42,9 @@ menos que se respete el sentido. */
     unsigned seed = 1946402; // semilla generador de números aleatorios
     const int iter_max=1000;
     const double h=1.0;
+    int iter,count;
 
-    System system(nplt,seed,30.0f,0.1f,0.05f);
+    System system(nplt,seed,30.0f,0.1f,0.05f,10000.0f,1.0f);
     
 
     // Generar posiciones iniciales aleatorias para los planetas
@@ -53,12 +54,15 @@ menos que se respete el sentido. */
 
     FILE *data;
     data=fopen("planets_data.dat","w");
-
+    count=0;
     for(t=0;t<iter_max;t+=h){
         system.Mover(h,data);
-        system.Interacciones();
+        iter=system.Interacciones();
+        count += iter;
     }
     
+
+    fprintf(stdout, "%i interacciones\n\n", count);
     //Aqui defino el tiempo 
     //Sistema.mover(); //sobre los parametros de radio y sobre el parametro de la linea del cinturon de anteroides. 10x10x10x10 ya tines 1e4 simulaciones
     //mover podria ser en polares? 

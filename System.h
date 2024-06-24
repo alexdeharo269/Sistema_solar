@@ -19,9 +19,8 @@ class Planet {
         double mass;
         double radius;
         double U; //energia interna.
-        bool real;
         int rock=0; // y las funciones publicas o privadas que le añado a planet (el algoritmo de Verlet puedo añadirlo aqui pq solo van con el sol)
-
+        bool real=true;
         // Constructor
         Planet()=default;
 
@@ -37,12 +36,13 @@ class Planet {
             y = dtS * sin(phi);
             return y;
         }
+        
 };
 
 class System {
     private:
         int numPlanetas;
-        float D_max, rock_density, vrmod;
+        float D_max, rock_density, vrmod,radmult, asteroidmult;
         mt19937_64 generator;
         uniform_real_distribution<double> real_distribution;
         uniform_real_distribution<double> rad_distribution;
@@ -50,15 +50,16 @@ class System {
         const double pi = M_PI;
 
     public:
-        vector<Planet> planetas;
+        vector<Planet> plts;
 
         // Constructor
-        System(int nplt, unsigned seed, float Dmax, float rock_den, float vr_mod)
-            : numPlanetas(nplt), D_max(Dmax), rock_density(rock_den),vrmod(vr_mod), generator(seed),
+        System(int nplt, unsigned seed, float Dmax, float rock_den, float vr_mod, float rad_mult, float asteroid_mult)
+            : numPlanetas(nplt), D_max(Dmax), rock_density(rock_den), vrmod(vr_mod), radmult(rad_mult),
+              asteroidmult(asteroid_mult), generator(seed),
               real_distribution(0.0, 1.0), rad_distribution(1.27 / D_max, 1.0), // pongo otra distribución para el radio ya que no pueden tener radio 0.
               // el menor radio será la órbita de Mercurio.
-              vr_distribution(-1.0,1.0),
-              planetas(static_cast<index_t>(numPlanetas))
+              vr_distribution(-1.0, 1.0),
+              plts(static_cast<index_t>(numPlanetas))
         {
         }
 
@@ -68,17 +69,18 @@ class System {
             // Generar posiciones aleatorias dentro del rango especificado
             for (index_t i = 0; i < static_cast<index_t>(numPlanetas); ++i)
             {
-                planetas[i].dtS = rad_distribution(generator) * D_max;
-                planetas[i].phi = real_distribution(generator) * 2 * pi;
+                plts[i].dtS = rad_distribution(generator) * D_max;
+                plts[i].phi = real_distribution(generator) * 2 * pi;
 
-                planetas[i].vr = vrmod*vr_distribution(generator); // PASO 2
-                planetas[i].radius=0.1;
+                plts[i].vr = vrmod*vr_distribution(generator); // PASO 2
+                plts[i].radius=0.1;
                 //Para la velocidad angular vamos a calcular una velocidad angular (radianes/59.1días) en función de la distancia
                 //Usamos la velocidad de una trayectoria circular:
                 
-                planetas[i].mass=0.0014/numPlanetas;
-                planetas[i].vphi = sqrt(1 / planetas[i].dtS);
-                if(real_distribution(generator)<=rock_density){planetas[i].rock=1;}
+                plts[i].mass=0.0014/numPlanetas;
+                plts[i].vphi = sqrt(1 / plts[i].dtS);
+                plts[i].radius=0.85*4.264e-5*radmult;
+                if(real_distribution(generator)<=rock_density){plts[i].rock=1;}
             }
         }
 
@@ -98,10 +100,40 @@ class System {
             vector<vector<double>> pic(nplt, vector<double>(4, 0.0));
             for (index_t i = 0; i < static_cast<index_t>(nplt); ++i)
             {
-                pic[i][0] = planetas[i].x();
-                pic[i][1] = planetas[i].y();
-                pic[i][2] = (-planetas[i].vphi * planetas[i].y()+planetas[i].vr*planetas[i].x())/planetas[i].dtS; // vx = -vphi * y
-                pic[i][3] = (planetas[i].vphi * planetas[i].x() + planetas[i].vr * planetas[i].y()) / planetas[i].dtS; // vy = vphi * x
+                if(plts[i].real){
+                    pic[i][0] = plts[i].x();
+                    pic[i][1] = plts[i].y();
+                    pic[i][2] = (-plts[i].vphi * plts[i].y() + plts[i].vr * plts[i].x()) / plts[i].dtS; // vx = -vphi * y
+                    pic[i][3] = (plts[i].vphi * plts[i].x() + plts[i].vr * plts[i].y()) / plts[i].dtS;  // vy = vphi * x
+
+                    // y_tminus1[i] = pic[i][1]; // Save previous y for period calculation
+                    double dx = pic[i][0];
+                    double dy = pic[i][1];
+                    double den = pow(pow(dx, 2) + pow(dy, 2), 1.5);
+
+                    ax[i] = -plts[i].mass * dx / den;
+                    ay[i] = -plts[i].mass * dy / den;
+
+                    pic[i][0] += h * pic[i][2] + 0.5 * h * h * ax[i];
+                    pic[i][1] += h * pic[i][3] + 0.5 * h * h * ay[i];
+
+                    wx[i] = pic[i][2] + 0.5 * h * ax[i];
+                    wy[i] = pic[i][3] + 0.5 * h * ay[i];
+
+                    dx = pic[i][0];
+                    dy = pic[i][1];
+                    den = pow(pow(dx, 2) + pow(dy, 2), 1.5);
+
+                    ax[i] = -plts[i].mass * dx / den;
+                    ay[i] = -plts[i].mass * dy / den;
+
+                    pic[i][2] = wx[i] + 0.5 * h * ax[i];
+                    pic[i][3] = wy[i] + 0.5 * h * ay[i];
+                }
+                else{
+                    plts[i].dtS = 0.0;
+                    plts[i].phi = 0.0;
+                }
             }
             /*
             // Files for output
@@ -109,58 +141,14 @@ class System {
             ofstream energy_data("e_vals.dat");
             ofstream t_data("t_data.dat");*/
 
-            // Save previous y for period calculation
-            for (index_t i = 0; i < static_cast<index_t>(nplt); ++i)
-            {
-                y_tminus1[i] = pic[i][1];
-            }
-
-            // Print current state
-            //print(data, energy_data, t_data, pic, energy, y_tminus1, aux, t);
-
-            // Calculate acceleration
-            for (index_t i = 0; i < static_cast<index_t>(nplt); ++i)
-            {
-                double dx = pic[i][0];
-                double dy = pic[i][1];
-                double den = pow(pow(dx, 2) + pow(dy, 2), 1.5);
-
-                ax[i] = -planetas[i].mass * dx / den;
-                ay[i] = -planetas[i].mass * dy / den;
-            }
-
-            // Update positions and velocities
-            for (index_t i = 0; i < static_cast<index_t>(nplt); ++i)
-            {
-                pic[i][0] += h * pic[i][2] + 0.5 * h * h * ax[i];
-                pic[i][1] += h * pic[i][3] + 0.5 * h * h * ay[i];
-
-                wx[i] = pic[i][2] + 0.5 * h * ax[i];
-                wy[i] = pic[i][3] + 0.5 * h * ay[i];
-            }
 
             for (index_t i = 0; i < static_cast<index_t>(nplt); ++i)
             {
-                double dx = pic[i][0];
-                double dy = pic[i][1];
-                double den = pow(pow(dx, 2) + pow(dy, 2), 1.5);
-
-                ax[i] =-planetas[i].mass * dx / den;
-                ay[i] =-planetas[i].mass * dy / den;
-            }
-
-            for (index_t i = 0; i < static_cast<index_t>(nplt); ++i)
-            {
-                pic[i][2] = wx[i] + 0.5 * h * ax[i];
-                pic[i][3] = wy[i] + 0.5 * h * ay[i];
-            }
-
-
-            for (index_t i = 0; i < static_cast<index_t>(nplt); ++i)
-            {
-                planetas[i].dtS=sqrt(pow(pic[i][0],2)+pow(pic[i][1],2));
-                planetas[i].phi=atan2(pic[i][1],pic[i][0]);
-                fprintf(data, "%lf, %lf, %i\n", planetas[i].x(), planetas[i].y(), planetas[i].rock);
+                if(plts[i].real){
+                    plts[i].dtS = sqrt(pow(pic[i][0], 2) + pow(pic[i][1], 2));
+                    plts[i].phi = atan2(pic[i][1], pic[i][0]);
+                }
+                fprintf(data, "%i,   %lf, %lf, %lf, %i\n", plts[i].real, plts[i].x(), plts[i].y(),plts[i].radius ,plts[i].rock);
             }
             fprintf(data, "\n");
 
@@ -175,8 +163,56 @@ class System {
             energy_data.close();
             t_data.close();*/
         }
-        
-        void Interacciones(){
+
+        void Colision(index_t i, index_t j)
+        {
+            plts[i].radius = plts[i].radius * pow((plts[i].mass + plts[j].mass)/ plts[i].mass, 1.0 / 3.0);
+            plts[i].vphi = (plts[i].vphi * plts[i].dtS * plts[i].mass + plts[j].vphi * plts[j].dtS * plts[j].mass)/ (plts[j].mass + plts[i].mass);
+            plts[i].vr = (plts[i].mass * plts[i].vr + plts[j].mass * plts[j].vr) / (plts[j].mass + plts[i].mass);
+            plts[i].mass+=plts[j].mass;
+            plts[j].real=false;
+
+        }
+
+        int Interacciones(){
+            index_t i,j;
+            int interacciones = 0;
+            double d;
+            for(i=0; i<static_cast<index_t>(numPlanetas);i++){
+                if(plts[i].real){
+                    if (plts[i].rock == 1)
+                    {
+                        for (j = 0; j < i; j++)
+                        {
+                            if(plts[j].real){
+                                d = sqrt(plts[i].dtS * plts[i].dtS + plts[j].dtS * plts[j].dtS - 2 * plts[i].dtS * plts[j].dtS * cos(plts[j].phi - plts[i].phi));
+
+                                if (d < (plts[i].radius + plts[j].radius))
+                                {
+                                    interacciones++;
+                                    Colision(i, j);
+                                }
+                            }
+                        }
+                    }
+                    if ((plts[i].rock == 0) && (plts[i].dtS >= 2.7 * asteroidmult))
+                    {
+                        for (j = 0; j < i; j++)
+                        {
+                            if(plts[j].real){
+                                d = sqrt(plts[i].dtS * plts[i].dtS + plts[j].dtS * plts[j].dtS - 2 * plts[i].dtS * plts[j].dtS * cos(plts[j].phi - plts[i].phi));
+
+                                if (d < (plts[i].radius + plts[j].radius))
+                                {
+                                    interacciones++;
+                                    Colision(i, j);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return interacciones;
 
         }
          
