@@ -78,7 +78,7 @@ class System {
                 //Usamos la velocidad de una trayectoria circular:
                 
                 plts[i].mass=0.0014/numPlanetas;
-                plts[i].vphi = sqrt(1 / plts[i].dtS);
+                plts[i].vphi =sqrt(1 / plts[i].dtS);
                 plts[i].radius=0.85*4.264e-5*radmult;
                 if(real_distribution(generator)<=rock_density){plts[i].rock=1;}
             }
@@ -106,13 +106,9 @@ class System {
                     pic[i][2] = (-plts[i].vphi * plts[i].y() + plts[i].vr * plts[i].x()) / plts[i].dtS; // vx = -vphi * y
                     pic[i][3] = (plts[i].vphi * plts[i].x() + plts[i].vr * plts[i].y()) / plts[i].dtS;  // vy = vphi * x
 
+                    ax[i] = -plts[i].mass * plts[i].x() / (plts[i].dtS * plts[i].dtS * plts[i].dtS);
+                    ay[i] = -plts[i].mass * plts[i].y() / (plts[i].dtS * plts[i].dtS * plts[i].dtS);
                     // y_tminus1[i] = pic[i][1]; // Save previous y for period calculation
-                    double dx = pic[i][0];
-                    double dy = pic[i][1];
-                    double den = pow(pow(dx, 2) + pow(dy, 2), 1.5);
-
-                    ax[i] = -plts[i].mass * dx / den;
-                    ay[i] = -plts[i].mass * dy / den;
 
                     pic[i][0] += h * pic[i][2] + 0.5 * h * h * ax[i];
                     pic[i][1] += h * pic[i][3] + 0.5 * h * h * ay[i];
@@ -120,12 +116,8 @@ class System {
                     wx[i] = pic[i][2] + 0.5 * h * ax[i];
                     wy[i] = pic[i][3] + 0.5 * h * ay[i];
 
-                    dx = pic[i][0];
-                    dy = pic[i][1];
-                    den = pow(pow(dx, 2) + pow(dy, 2), 1.5);
-
-                    ax[i] = -plts[i].mass * dx / den;
-                    ay[i] = -plts[i].mass * dy / den;
+                    ax[i] = -plts[i].mass * plts[i].x() / (plts[i].dtS * plts[i].dtS * plts[i].dtS);
+                    ay[i] = -plts[i].mass * plts[i].y() / (plts[i].dtS * plts[i].dtS * plts[i].dtS);
 
                     pic[i][2] = wx[i] + 0.5 * h * ax[i];
                     pic[i][3] = wy[i] + 0.5 * h * ay[i];
@@ -167,10 +159,11 @@ class System {
         void Colision(index_t i, index_t j)
         {
             plts[i].radius = plts[i].radius * pow((plts[i].mass + plts[j].mass)/ plts[i].mass, 1.0 / 3.0);
-            plts[i].vphi = (plts[i].vphi * plts[i].dtS * plts[i].mass + plts[j].vphi * plts[j].dtS * plts[j].mass)/ (plts[j].mass + plts[i].mass);
+            plts[i].vphi = (plts[i].vphi * plts[i].mass + plts[j].vphi * plts[j].mass)/ (plts[j].mass + plts[i].mass);
             plts[i].vr = (plts[i].mass * plts[i].vr + plts[j].mass * plts[j].vr) / (plts[j].mass + plts[i].mass);
             plts[i].mass+=plts[j].mass;
             plts[j].real=false;
+            plts[j].radius=0.0;
 
         }
 
@@ -184,7 +177,7 @@ class System {
                     {
                         for (j = 0; j < i; j++)
                         {
-                            if(plts[j].real){
+                            if((plts[j].real)&(plts[j].rock==1)){
                                 d = sqrt(plts[i].dtS * plts[i].dtS + plts[j].dtS * plts[j].dtS - 2 * plts[i].dtS * plts[j].dtS * cos(plts[j].phi - plts[i].phi));
 
                                 if (d < (plts[i].radius + plts[j].radius))
@@ -199,7 +192,7 @@ class System {
                     {
                         for (j = 0; j < i; j++)
                         {
-                            if(plts[j].real){
+                            if((plts[j].real)&(plts[j].rock==0)){
                                 d = sqrt(plts[i].dtS * plts[i].dtS + plts[j].dtS * plts[j].dtS - 2 * plts[i].dtS * plts[j].dtS * cos(plts[j].phi - plts[i].phi));
 
                                 if (d < (plts[i].radius + plts[j].radius))

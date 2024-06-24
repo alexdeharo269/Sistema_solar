@@ -38,13 +38,13 @@ dentro de los limites del SS, pero no completamente random para las velocidades 
 se cancelan y todo cae sobre el Sol. Habia pensado en un cono dentro del cual las velocidaes sean random, pero al
 menos que se respete el sentido. */
     double t;
-    const int nplt = 100;      // esto va a ser el numero inicial de planetesimales.
-    unsigned seed = 1946402; // semilla generador de números aleatorios
-    const int iter_max=1000;
+    const int nplt = 300;      // esto va a ser el numero inicial de planetesimales.
+    unsigned seed = 194892; // semilla generador de números aleatorios
+    const int iter_max=300;
     const double h=1.0;
     int iter,count;
 
-    System system(nplt,seed,30.0f,0.1f,0.05f,10000.0f,1.0f);
+    System system(nplt,seed,30.0f,0.1f,0.0001f,10000.0f,1.0f);
     
 
     // Generar posiciones iniciales aleatorias para los planetas

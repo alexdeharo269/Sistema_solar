@@ -10,23 +10,52 @@ file_in = rf"C:\Users\Ale\Desktop\UGR FISICA\FISICA_COMPUTACIONAL\Sistema_solar\
 file_out = "planetas" # Nombre del fichero de salida (sin extensión)
 
 # Límites de los ejes X e Y
-x_min = -30
-x_max = 30
-y_min = -30 
-y_max = 30
+x_min = -50
+x_max = 50
+y_min = -50 
+y_max = 50
 
-interval = 5 # Tiempo entre fotogramas en milisegundos
-show_trail = True # Muestra la "estela" del planeta
-trail_width = 1 # Ancho de la estela
+interval = 30 # Tiempo entre fotogramas en milisegundos
+show_trail = False # Muestra la "estela" del planeta
+trail_width = 0.2 # Ancho de la estela
 save_to_file = False # False: muestra la animación por pantalla,
-                     # True: la guarda en un fichero
+                     # True: la guarda en un fichero 
 dpi = 150 # Calidad del vídeo de salida (dots per inch)
 
 # Radio del planeta, en las mismas unidades que la posición
-# Puede ser un número (el radio de todos los planetas) o una lista con
-# el radio de cada uno
-planet_radius = 0.1
-#planet_radius = [0.5, 0.7, 1.1]
+base_radius = 0.362440  # Base radius as specified
+
+# Lectura del fichero de datos
+# ========================================
+# Lee el fichero a una cadena de texto
+with open(file_in, "r") as f:
+    data_str = f.read()
+
+# Inicializa la lista con los datos de cada fotograma.
+# frames_data[j] contiene los datos del fotograma j-ésimo
+frames_data = list()
+
+# Itera sobre los bloques de texto separados por líneas vacías
+# (cada bloque corresponde a un instante de tiempo)
+for frame_data_str in data_str.strip().split("\n\n"):
+    # Inicializa la lista con la posición de cada planeta
+    frame_data = list()
+
+    # Itera sobre las líneas del bloque
+    # (cada línea da la posición de un planeta)
+    for planet_pos_str in frame_data_str.strip().split("\n"):
+        # Lee los datos de la línea
+        planet_data = np.fromstring(planet_pos_str, sep=",")
+        # Si la línea no está vacía y el planeta es real, añade planet_data a la lista de posiciones del fotograma
+        if planet_data.size > 0 and planet_data[0] == 1:
+            frame_data.append(planet_data[1:])
+
+    # Añade los datos de este fotograma a la lista
+    frames_data.append(frame_data)
+
+# El número de planetas es el número de líneas en cada bloque
+# Lo calculamos del primer bloque
+nplanets = len(frames_data[0])
 
 
 # Lectura del fichero de datos
@@ -48,20 +77,19 @@ for frame_data_str in data_str.strip().split("\n\n"):
     # Itera sobre las líneas del bloque
     # (cada línea da la posición de un planeta)
     for planet_pos_str in frame_data_str.strip().split("\n"):
-        # Lee la componente x e y de la línea
-        planet_pos = np.fromstring(planet_pos_str, sep=",")
-        # Si la línea no está vacía, añade planet_pos a la lista de 
-        # posiciones del fotograma
-        if planet_pos.size > 0:
-            frame_data.append(planet_pos)
+        # Lee los datos de la línea
+        planet_data = np.fromstring(planet_pos_str, sep=",")
+        # Si la línea no está vacía, añade planet_data a la lista de posiciones del fotograma
+        if planet_data.size > 0:
+            frame_data.append(planet_data)
 
-    # Añade los datos de este fotograma a la lista
-    frames_data.append(frame_data)
+    # Añade los datos de este fotograma a la lista si hay planetas reales
+    if frame_data:
+        frames_data.append(frame_data)
 
 # El número de planetas es el número de líneas en cada bloque
 # Lo calculamos del primer bloque
 nplanets = len(frames_data[0])
-
 
 # Creación de la animación/gráfico
 # ========================================
@@ -73,25 +101,13 @@ ax.axis("equal")  # Misma escala para ejes X e Y
 ax.set_xlim(x_min, x_max)
 ax.set_ylim(y_min, y_max)
 
-# Si solo se ha dado un radio para todos los planetas, conviértelo a una
-# lista con todos los elementos iguales
-if not hasattr(planet_radius, "__iter__"):
-    planet_radius = planet_radius * np.ones(nplanets)
-# En caso contrario, comprueba que el nº de radios coincide con el
-# nº de planetas y devuelve error en caso contrario
-else:
-    if not nplanets == len(planet_radius):
-        raise ValueError(
-            "El número de radios especificados no coincide con el número "
-            "de planetas")
-
 # Representa el primer fotograma
 # Pinta un punto en la posición de cada planeta y guarda el objeto asociado
 # al punto en una lista
 planet_points = list()
 planet_trails = list()
-for planet_pos, radius in zip(frames_data[0], planet_radius):
-    x, y, rock = planet_pos
+for planet_data in frames_data[0]:
+    _, x, y, radius, rock = planet_data
     color_planet = 'blue' if rock == 0 else 'red'
     planet_point = Circle((x, y), radius, color=color_planet)
     ax.add_artist(planet_point)
@@ -105,12 +121,13 @@ for planet_pos, radius in zip(frames_data[0], planet_radius):
         planet_trails.append(planet_trail)
 
 
-# Función que actualiza la posición de los planetas en la animación 
+# Función que actualiza la posición de los planetas en la animación
 def update(j_frame, frames_data, planet_points, planet_trails, show_trail):
     # Actualiza la posición del correspondiente a cada planeta
-    for j_planet, planet_pos in enumerate(frames_data[j_frame]):
-        x, y, rock = planet_pos
+    for j_planet, planet_data in enumerate(frames_data[j_frame]):
+        _, x, y, radius, rock = planet_data
         planet_points[j_planet].center = (x, y)
+        planet_points[j_planet].radius = radius
         if show_trail:
             old_x, old_y = planet_trails[j_planet].get_data()
             new_x = np.append(old_x, x)
@@ -138,7 +155,7 @@ if nframes > 1:
     animation = FuncAnimation(
         fig, update, init_func=init_anim,
         fargs=(frames_data, planet_points, planet_trails, show_trail),
-        frames=len(frames_data), blit=True, interval=interval)
+        frames=nframes, blit=True, interval=interval)
 
     # Muestra por pantalla o guarda según parámetros
     if save_to_file:
